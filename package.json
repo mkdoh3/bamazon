@@ -1,0 +1,29 @@
+{
+  "name": "bamazon",
+  "version": "1.0.0",
+  "description": "cli inventory management",
+  "main": "bamazonCustomer.js",
+  "scripts": {
+    "start": "node bamazonCustomer.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mkdoh3/bamazon.git"
+  },
+  "author": "Michael Doherty",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mkdoh3/bamazon/issues"
+  },
+  "homepage": "https://github.com/mkdoh3/bamazon#readme",
+  "dependencies": {
+    "columnify": "^1.5.4",
+    "dotenv": "^4.0.0",
+    "inquirer": "^4.0.0",
+    "mysql": "^2.15.0"
+  },
+  "devDependencies": {
+    "dotenv": "^4.0.0"
+  }
+}
