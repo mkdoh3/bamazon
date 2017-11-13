@@ -21,7 +21,8 @@
     "columnify": "^1.5.4",
     "dotenv": "^4.0.0",
     "inquirer": "^4.0.0",
-    "mysql": "^2.15.0"
+    "mysql": "^2.15.0",
+    "text-animation": "^1.2.7"
   },
   "devDependencies": {
     "dotenv": "^4.0.0"

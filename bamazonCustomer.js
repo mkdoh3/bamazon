@@ -6,10 +6,11 @@ const inquirer = require('inquirer');
 
 const columnify = require('columnify')
 
-let descriptors = ["Yummy", "Delicious", "Mouth Watering", "Delectable"]
+const TextAnimation = require("text-animation");
+
+const descriptors = ["Yummy", "Delicious", "Mouth Watering", "Delectable"]
 
 let shoppingCart = [];
-
 
 
 connection.connect(function (err) {
@@ -18,6 +19,7 @@ connection.connect(function (err) {
     displayAllProducts()
 });
 
+//seems like it would make way more sense to display stock quantities here.. but for the sake of direction following, It's gonna be left out for now
 
 function displayAllProducts() {
     console.log("\n Welcome to Bamazon! Like Amazon, but with more B!\n Come on down n' getcha some!!\n");
@@ -43,7 +45,6 @@ function displayAllProducts() {
     })
 };
 
-
 function idSelect(validIds) {
     console.log("\n\nEnter a product id to start buyin'!")
     inquirer.prompt([
@@ -63,7 +64,6 @@ function idSelect(validIds) {
     })
 }
 
-
 function displaySelectedProduct(id) {
     process.stdout.write('\033c')
     connection.query("SELECT product_name, price, stock_quantity FROM products WHERE item_id=" + id, function (err, res) {
@@ -76,7 +76,6 @@ function displaySelectedProduct(id) {
         quantitySelect(name, price, stockCount);
     });
 }
-
 
 
 function quantitySelect(name, price, stockCount) {
@@ -100,14 +99,15 @@ function quantitySelect(name, price, stockCount) {
             name: 'choice'
         }
     ];
-
-
     inquirer.prompt(questions).then(function (res) {
         if (res.choice === 'Cancel') {
             process.stdout.write('\033c');
             displayAllProducts();
+        } else if (stockCount === 0) {
+            console.log('Out of Stock! Sorry!')
+            displayAllProducts();
         } else if (stockCount < res.quantity) {
-            console.log('Insufficient stock :(\nIt would probs make more sense to just display the stock before you place an order..\n but my boss wont let me :/')
+            console.log('Insufficient stock :(')
             quantitySelect(name, price, stockCount)
         } else {
             let total = (price * res.quantity).toFixed(2);
@@ -124,41 +124,34 @@ function quantitySelect(name, price, stockCount) {
     })
 };
 
-
 function selectMenu() {
     inquirer.prompt([
         {
             message: '\nWhat now?',
             type: 'list',
-            choices: ['SHOP MOAR!', 'View Cart', 'Check Out'],
+            choices: ['SHOP MOAR!', 'View Cart'],
             name: 'choice'
         }
     ]).then(function (res) {
         process.stdout.write('\033c');
         if (res.choice === 'SHOP MOAR!') {
             displayAllProducts();
-        } else if (res.choice === "View Cart") {
-            viewCart();
         } else {
-            checkOut();
+            viewCart();
         }
     })
 };
 
 
 
-
-
 function viewCart() {
-    //    console.log(shoppingCart)
     let grandTotal = 0;
     let columns = [];
 
     shoppingCart.forEach(function (e) {
-        console.log('each element', e)
+
         grandTotal += parseFloat(e.total)
 
-        console.log('\nadding to total', grandTotal, '\n')
         columns.unshift({
             "Product": e.product_name,
             "Price": e.price,
@@ -166,24 +159,68 @@ function viewCart() {
             "Total": e.total
         });
     });
+
     console.log(columnify(columns, {
         minWidth: 15
     }));
     grandTotal = grandTotal.toFixed(2)
-    console.log("\n", `                                  Grand Total: $${grandTotal}`)
-    selectMenu();
+    console.log("\n", `                                 Grand Total: $${grandTotal}`)
+    cartMenu(grandTotal);
+}
+
+
+function cartMenu(grandTotal) {
+    inquirer.prompt([
+        {
+            message: '\nWhat now?',
+            type: 'list',
+            choices: ['Check Out', 'MOAR SHOPPINGS!'],
+            name: 'choice'
+        }
+    ]).then(function (res) {
+        process.stdout.write('\033c');
+        if (res.choice === 'MOAR SHOPPINGS!') {
+            displayAllProducts();
+        } else {
+            process.stdout.write('\033c');
+            funTimeAnimation(5, grandTotal)
+        }
+    })
 }
 
 
 
+//this didnt end up looking nearly as cool as I thought it might.. but I wanted to doing something goofy while messing around with recursion..
 
+function funTimeAnimation(x, grandTotal) {
+    if (x < 0) {
+        return checkOut(grandTotal);
+    }
+    let dollars = [`$      $`, `        $        `, `        $        $           $       `, `        $       `, `               $`, '$'];
+    let dollar = dollars[Math.floor(Math.random() * dollars.length)]
+    TextAnimation({
+        text: dollar,
+        animation: "top-bottom",
+        delay: .5
+    }, function (err) {
+        if (err) {
+            throw err
+        }
+        x--
+        funTimeAnimation(x, grandTotal)
 
-function checkOut() {
-
+    })
 }
 
 
-
+function checkOut(grandTotal) {
+    process.stdout.write('\033c');
+    console.log("\n\n\n             Thanks!\n", `            ${grandTotal} life hours have been subtracted from your avaiable time to live!!`, "\n             Come again!");
+    setTimeout(() => {
+        process.stdout.write('\033c');
+        connection.end();
+    }, 6000);
+}
 
 
 
