@@ -6,9 +6,8 @@ const inquirer = require('inquirer');
 
 const columnify = require('columnify')
 
-//to be used from inquirer validation
-let idNumbers = [];
 let descriptors = ["Yummy", "Delicious", "Mouth Watering", "Delectable"]
+
 let shoppingCart = [];
 
 
@@ -24,6 +23,8 @@ function displayAllProducts() {
     console.log("\n Welcome to Bamazon! Like Amazon, but with more B!\n Come on down n' getcha some!!\n");
     connection.query("SELECT item_id, product_name, price FROM products", function (err, res) {
         if (err) throw err;
+        //to be used from inquirer validation
+        let idNumbers = [];
         let columns = [];
         console.log("######################### FOR SALE #############################\n");
         res.forEach(function (e) {
@@ -38,12 +39,12 @@ function displayAllProducts() {
             minWidth: 20
         }))
         console.log("\n################################################################")
-        idSelect();
+        idSelect(idNumbers);
     })
 };
 
 
-function idSelect() {
+function idSelect(validIds) {
     console.log("\n\nEnter a product id to start buyin'!")
     inquirer.prompt([
         {
@@ -51,7 +52,7 @@ function idSelect() {
             type: 'input',
             name: 'id',
             validate: function (id) {
-                if (idNumbers.indexOf(id) >= 0) {
+                if (validIds.indexOf(id) >= 0) {
                     return true;
                 }
                 return 'Please enter a valid product id';
@@ -63,27 +64,29 @@ function idSelect() {
 }
 
 
-
 function displaySelectedProduct(id) {
     process.stdout.write('\033c')
-    connection.query("SELECT product_name, price FROM products WHERE item_id=" + id, function (err, res) {
+    connection.query("SELECT product_name, price, stock_quantity FROM products WHERE item_id=" + id, function (err, res) {
         if (err) throw err;
         let adjective = descriptors[Math.floor(Math.random() * descriptors.length)]
         console.log("\n", `${adjective} ${res[0].product_name}! Those'll run ya ${res[0].price} each. What a steal!`)
-        quantitySelect(res[0].product_name, res[0].price);
+        let stockCount = res[0].stock_quantity
+        let name = res[0].product_name
+        let price = res[0].price
+        quantitySelect(name, price, stockCount);
     });
-
 }
 
 
-function quantitySelect(name, price) {
-    inquirer.prompt([
+
+function quantitySelect(name, price, stockCount) {
+    let questions = [
         {
             message: "\nHow many can I put ya down for?\n",
             type: 'input',
             name: 'quantity',
             validate: function (quantity) {
-                if (typeof (parseInt(quantity)) === 'number') {
+                if (typeof (parseInt(quantity)) === 'number' && parseInt(quantity) > 0) {
                     return true;
                 } else {
                     return 'Please enter a valid, whole-number quantity'
@@ -96,18 +99,87 @@ function quantitySelect(name, price) {
             choices: ["Add", "Cancel"],
             name: 'choice'
         }
-    ]).then(function (res) {
+    ];
+
+
+    inquirer.prompt(questions).then(function (res) {
         if (res.choice === 'Cancel') {
             process.stdout.write('\033c');
             displayAllProducts();
+        } else if (stockCount < res.quantity) {
+            console.log('Insufficient stock :(\nIt would probs make more sense to just display the stock before you place an order..\n but my boss wont let me :/')
+            quantitySelect(name, price, stockCount)
+        } else {
+            let total = (price * res.quantity).toFixed(2);
+            shoppingCart.push({
+                'product_name': name,
+                'price': price,
+                'quantity': res.quantity,
+                'total': total
+            })
+            console.log('\n', `${res.quantity} ${name}(s) added to cart.`)
+            selectMenu()
         }
-        shoppingCart.push({
-            'product_name': name,
-            'price': price,
-            'quantity': res.quantity
-        })
-        console.log(shoppingCart)
+
     })
+};
+
+
+function selectMenu() {
+    inquirer.prompt([
+        {
+            message: '\nWhat now?',
+            type: 'list',
+            choices: ['SHOP MOAR!', 'View Cart', 'Check Out'],
+            name: 'choice'
+        }
+    ]).then(function (res) {
+        process.stdout.write('\033c');
+        if (res.choice === 'SHOP MOAR!') {
+            displayAllProducts();
+        } else if (res.choice === "View Cart") {
+            viewCart();
+        } else {
+            checkOut();
+        }
+    })
+};
+
+
+
+
+
+function viewCart() {
+    //    console.log(shoppingCart)
+    let grandTotal = 0;
+    let columns = [];
+
+    shoppingCart.forEach(function (e) {
+        console.log('each element', e)
+        grandTotal += parseFloat(e.total)
+
+        console.log('\nadding to total', grandTotal, '\n')
+        columns.unshift({
+            "Product": e.product_name,
+            "Price": e.price,
+            "Quantity": e.quantity,
+            "Total": e.total
+        });
+    });
+    console.log(columnify(columns, {
+        minWidth: 15
+    }));
+    grandTotal = grandTotal.toFixed(2)
+    console.log("\n", `                                  Grand Total: $${grandTotal}`)
+    selectMenu();
+}
+
+
+
+
+
+function checkOut() {
+
 }
 
 
@@ -117,15 +189,6 @@ function quantitySelect(name, price) {
 
 
 
-
-//
-//
-//   {
-//            message: "Quantity: ",
-//            type: "input",
-//            name: 'quantity'
-//        }
-//
 
 //function createProduct() {
 //    console.log("Inserting a new product...\n");
