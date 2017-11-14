@@ -8,9 +8,24 @@ const columnify = require('columnify')
 
 const TextAnimation = require("text-animation");
 
+const keypress = require('keypress');
+
+//keypress(process.stdin);
+
 const descriptors = ["Yummy", "Delicious", "Mouth Watering", "Delectable"]
 
 let shoppingCart = [];
+
+
+
+//////// TO-DO //////////////////////
+
+//  get hotkeys working.. maybe. or figure out a better menu design. main menu, back, exit etc..
+//  handle empty cart/checkout with empty cart..
+//  figure out best place to put database update after checkout..
+
+/////////////////////////////////
+
 
 
 connection.connect(function (err) {
@@ -19,8 +34,40 @@ connection.connect(function (err) {
     displayAllProducts()
 });
 
-//seems like it would make way more sense to display stock quantities here.. but for the sake of direction following, It's gonna be left out for now
 
+
+//hotkeys are kinda working.. but lots of bugs.. hard to control for key mashing/hitting keys at the wrong time
+
+//process.stdin.on('keypress', function (ch, key) {
+//    if (key && key.name === 'escape') {
+//        process.stdout.write("\033c");
+//        process.exit();
+//    }
+//});
+//
+//process.stdin.on('keypress', function (ch, key) {
+//    if (key && key.name === 'c') {
+//        process.stdin.pause();
+//        process.stdout.write("\033c");
+//        if (shoppingCart.length === 0) {
+//            console.log("\n\n Cart Empty.. duh.")
+//            setTimeout(() => {
+//                process.stdin.resume();
+//                displayAllProducts()
+//            }, 2000)
+//        } else {
+//            viewCart();
+//        }
+//    }
+//});
+
+
+
+
+
+
+
+//seems like it would make way more sense to display stock quantities here.. but for the sake of direction following, It's gonna be left out for now
 function displayAllProducts() {
     console.log("\n Welcome to Bamazon! Like Amazon, but with more B!\n Come on down n' getcha some!!\n");
     connection.query("SELECT item_id, product_name, price FROM products", function (err, res) {
@@ -42,6 +89,7 @@ function displayAllProducts() {
         }))
         console.log("\n################################################################")
         idSelect(idNumbers);
+        //        console.log("\n\n\n\n press 'esc' to exit, 'c' to see cart")
     })
 };
 
@@ -147,18 +195,22 @@ function selectMenu() {
 function viewCart() {
     let grandTotal = 0;
     let columns = [];
+    if (shoppingCart.length === 0) {
+        console.log("\n\n            Cart Empty.. duh.")
+    } else {
 
-    shoppingCart.forEach(function (e) {
+        shoppingCart.forEach(function (e) {
 
-        grandTotal += parseFloat(e.total)
+            grandTotal += parseFloat(e.total)
 
-        columns.unshift({
-            "Product": e.product_name,
-            "Price": e.price,
-            "Quantity": e.quantity,
-            "Total": e.total
+            columns.unshift({
+                "Product": e.product_name,
+                "Price": e.price,
+                "Quantity": e.quantity,
+                "Total": e.total
+            });
         });
-    });
+    }
 
     console.log(columnify(columns, {
         minWidth: 15
@@ -215,7 +267,7 @@ function funTimeAnimation(x, grandTotal) {
 
 function checkOut(grandTotal) {
     process.stdout.write('\033c');
-    console.log("\n\n\n             Thanks!\n", `            ${grandTotal} life hours have been subtracted from your avaiable time to live!!`, "\n             Come again!");
+    console.log("\n\n\n     Thanks!\n", `   ${grandTotal} life hours have been subtracted from your avaiable time to live!!`, "\n   Come again!");
     setTimeout(() => {
         process.stdout.write('\033c');
         connection.end();
