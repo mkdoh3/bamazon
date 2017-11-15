@@ -1,5 +1,7 @@
 const connection = require("./src/sql-connection");
 
+const Display = require('./display-module');
+
 const mySQL = require('mysql');
 
 const inquirer = require('inquirer');
@@ -12,7 +14,7 @@ const keypress = require('keypress');
 
 //keypress(process.stdin);
 
-const descriptors = ["Yummy", "Delicious", "Mouth Watering", "Delectable"]
+const descriptors = ["Yummy", "Delicious", "Delectable", "Tasty", 'That good good']
 
 let shoppingCart = [];
 
@@ -21,8 +23,11 @@ let shoppingCart = [];
 //////// TO-DO //////////////////////
 
 //  get hotkeys working.. maybe. or figure out a better menu design. main menu, back, exit etc..
+//  increase original quantity instead of adding duplicate items to the cart
+//  when adding duplicate items, what is the best way to verify stock availability??
 //  handle empty cart/checkout with empty cart..
 //  figure out best place to put database update after checkout..
+//  
 
 /////////////////////////////////
 
@@ -117,11 +122,10 @@ function displaySelectedProduct(id) {
     connection.query("SELECT product_name, price, stock_quantity FROM products WHERE item_id=" + id, function (err, res) {
         if (err) throw err;
         let adjective = descriptors[Math.floor(Math.random() * descriptors.length)]
-        console.log("\n", `${adjective} ${res[0].product_name}! Those'll run ya ${res[0].price} each. What a steal!`)
-        let stockCount = res[0].stock_quantity
-        let name = res[0].product_name
-        let price = res[0].price
-        quantitySelect(name, price, stockCount);
+        //completely unnecessary constructor.. just practicing!
+        let display = new Display(adjective, res[0].stock_quantity, res[0].product_name, res[0].price)
+        display.log();
+        quantitySelect(display.name, display.price, display.stockCount);
     });
 }
 
