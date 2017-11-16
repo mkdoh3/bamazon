@@ -20,16 +20,16 @@ let shoppingCart = [];
 
 
 
-//////// TO-DO //////////////////////
-
+//////// TO-DO /////////////////////////////////////////////////////////////////////////////////
+//
 //  get hotkeys working.. maybe. or figure out a better menu design. main menu, back, exit etc..
 //  increase original quantity instead of adding duplicate items to the cart
 //  when adding duplicate items, what is the best way to verify stock availability??
 //  handle empty cart/checkout with empty cart..
 //  figure out best place to put database update after checkout..
-//  
-
-/////////////////////////////////
+//  readme with gif!
+//
+//////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
@@ -123,14 +123,14 @@ function displaySelectedProduct(id) {
         if (err) throw err;
         let adjective = descriptors[Math.floor(Math.random() * descriptors.length)]
         //completely unnecessary constructor.. just practicing!
-        let display = new Display(adjective, res[0].stock_quantity, res[0].product_name, res[0].price)
+        let display = new Display(adjective, res[0].stock_quantity, res[0].product_name, res[0].price, id)
         display.log();
-        quantitySelect(display.name, display.price, display.stockCount);
+        quantitySelect(display.name, display.price, display.stockCount, display.id);
     });
 }
 
 
-function quantitySelect(name, price, stockCount) {
+function quantitySelect(name, price, stockCount, id) {
     let questions = [
         {
             message: "\nHow many can I put ya down for?\n",
@@ -167,7 +167,8 @@ function quantitySelect(name, price, stockCount) {
                 'product_name': name,
                 'price': price,
                 'quantity': res.quantity,
-                'total': total
+                'total': total,
+                'id': id
             })
             console.log('\n', `${res.quantity} ${name}(s) added to cart.`)
             selectMenu()
@@ -193,6 +194,8 @@ function selectMenu() {
         }
     })
 };
+
+
 
 
 
@@ -239,14 +242,16 @@ function cartMenu(grandTotal) {
             displayAllProducts();
         } else {
             process.stdout.write('\033c');
-            funTimeAnimation(5, grandTotal)
+            funTimeAnimation(2, grandTotal)
         }
     })
 }
 
 
 
-//this didnt end up looking nearly as cool as I thought it might.. but I wanted to doing something goofy while messing around with recursion..
+//this didnt end up looking nearly as cool as I thought it might.. and it really doesnt make much sense,  just wanted to practice some recursion.. :D 
+// I was gonna pass this the grandtotal and display a dollar sign for every dollar spent, which might've made more sense as a recursion function(not really), but the animation just got too long and annoying
+
 
 function funTimeAnimation(x, grandTotal) {
     if (x < 0) {
@@ -270,8 +275,9 @@ function funTimeAnimation(x, grandTotal) {
 
 
 function checkOut(grandTotal) {
+    updateInventory(shoppingCart);
     process.stdout.write('\033c');
-    console.log("\n\n\n     Thanks!\n", `   ${grandTotal} life hours have been subtracted from your avaiable time to live!!`, "\n   Come again!");
+    console.log("\n\n\n      Thanks!\n", `     ${grandTotal} life hours have been subtracted from your avaiable time to live!!`, "\n      Come again!");
     setTimeout(() => {
         process.stdout.write('\033c');
         connection.end();
@@ -279,8 +285,21 @@ function checkOut(grandTotal) {
 }
 
 
+function updateInventory(cart) {
+    cart.forEach(function (item) {
+        console.log(item)
+        let query = connection.query('UPDATE products SET stock_quantity=stock_quantity-' + item.quantity + ' WHERE ?', [{
+            item_id: item.id
+        }], function (err, res) {
+            if (err) throw err;
+        });
+        console.log(query.sql);
+    })
+};
 
 
+
+//to be used in next step
 
 
 //function createProduct() {
