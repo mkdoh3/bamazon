@@ -26,9 +26,7 @@ let shoppingCart = [];
 //  increase original quantity instead of adding duplicate items to the cart
 //  when adding duplicate items, what is the best way to verify stock availability??
 //  handle empty cart/checkout with empty cart..
-//  figure out best place to put database update after checkout..
-//  readme with gif!
-//
+// 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -242,7 +240,7 @@ function cartMenu(grandTotal) {
             displayAllProducts();
         } else {
             process.stdout.write('\033c');
-            funTimeAnimation(2, grandTotal)
+            funTimeAnimation(0, grandTotal)
         }
     })
 }
@@ -254,20 +252,21 @@ function cartMenu(grandTotal) {
 
 
 function funTimeAnimation(x, grandTotal) {
-    if (x < 0) {
+    console.log(x)
+    let dollars = ['$', '   $', '       $', '   $', '$', '   $', '       $'];
+    if (x == dollars.length) {
         return checkOut(grandTotal);
     }
-    let dollars = [`$      $`, `        $        `, `        $        $           $       `, `        $       `, `               $`, '$'];
-    let dollar = dollars[Math.floor(Math.random() * dollars.length)]
+
     TextAnimation({
-        text: dollar,
+        text: dollars[x],
         animation: "top-bottom",
-        delay: .5
+        delay: 5
     }, function (err) {
         if (err) {
             throw err
         }
-        x--
+        x++
         funTimeAnimation(x, grandTotal)
 
     })
@@ -293,13 +292,12 @@ function updateInventory(cart) {
         }], function (err, res) {
             if (err) throw err;
         });
-        console.log(query.sql);
     })
 };
 
 
 
-//to be used in next step
+//future feature?
 
 
 //function createProduct() {
