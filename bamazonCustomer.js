@@ -6,26 +6,21 @@ const mySQL = require('mysql');
 
 const inquirer = require('inquirer');
 
-const columnify = require('columnify')
+const columnify = require('columnify');
 
 const TextAnimation = require("text-animation");
 
-const keypress = require('keypress');
+//const keypress = require('keypress');
 
 //keypress(process.stdin);
 
-const descriptors = ["Yummy", "Delicious", "Delectable", "Tasty", 'That good good']
+const descriptors = ["Yummy", "Delicious", "Delectable", "Tasty", 'That good good'];
 
 let shoppingCart = [];
-
-
 
 //////// TO-DO /////////////////////////////////////////////////////////////////////////////////
 //
 //  get hotkeys working.. maybe. or figure out a better menu design. main menu, back, exit etc..
-//  increase original quantity instead of adding duplicate items to the cart
-//  when adding duplicate items, what is the best way to verify stock availability??
-//  handle empty cart/checkout with empty cart..
 // 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -33,45 +28,39 @@ let shoppingCart = [];
 
 connection.connect(function (err) {
     if (err) throw err;
-    process.stdout.write('\033c')
-    displayAllProducts()
+    process.stdout.write('\033c');
+    displayAllProducts();
 });
-
 
 
 //hotkeys are kinda working.. but lots of bugs.. hard to control for key mashing/hitting keys at the wrong time
 
-//process.stdin.on('keypress', function (ch, key) {
-//    if (key && key.name === 'escape') {
-//        process.stdout.write("\033c");
-//        process.exit();
-//    }
-//});
-//
-//process.stdin.on('keypress', function (ch, key) {
-//    if (key && key.name === 'c') {
-//        process.stdin.pause();
-//        process.stdout.write("\033c");
-//        if (shoppingCart.length === 0) {
-//            console.log("\n\n Cart Empty.. duh.")
-//            setTimeout(() => {
-//                process.stdin.resume();
-//                displayAllProducts()
-//            }, 2000)
-//        } else {
-//            viewCart();
-//        }
-//    }
-//});
-
-
-
+process.stdin.on('keypress', function (ch, key) {
+    if (key && key.name === 'escape') {
+        process.stdout.write("\033c");
+        process.exit();
+    }
+    if (key && key.name === 'c') {
+        process.stdin.pause();
+        process.stdout.write("\033c");
+        if (shoppingCart.length === 0) {
+            console.log("\n\n Cart Empty.. duh.")
+            setTimeout(() => {
+                displayAllProducts()
+            }, 2000)
+        } else {
+            viewCart();
+        }
+    }
+});
 
 
 
 
 //seems like it would make way more sense to display stock quantities here.. but for the sake of direction following, It's gonna be left out for now
 function displayAllProducts() {
+    process.stdout.write('\033c');
+    process.stdin.resume();
     console.log("\n Welcome to Bamazon! Like Amazon, but with more B!\n Come on down n' getcha some!!\n");
     connection.query("SELECT item_id, product_name, price FROM products", function (err, res) {
         if (err) throw err;
@@ -85,19 +74,19 @@ function displayAllProducts() {
                 "product name": e.product_name,
                 "low-low Price": e.price
             });
-            idNumbers.push(e.item_id.toString())
-        })
+            idNumbers.push(e.item_id.toString());
+        });
         console.log(columnify(columns, {
             minWidth: 20
-        }))
-        console.log("\n################################################################")
+        }));
+        console.log("\n################################################################");
         idSelect(idNumbers);
-        //        console.log("\n\n\n\n press 'esc' to exit, 'c' to see cart")
-    })
-};
+    });
+}
 
 function idSelect(validIds) {
-    console.log("\n\nEnter a product id to start buyin'!")
+    console.log("\n\nEnter a product id to start buyin'!");
+    console.log("..or press 'esc' to exit, 'c' to see cart")
     inquirer.prompt([
         {
             message: "Product id: ",
@@ -111,24 +100,28 @@ function idSelect(validIds) {
             }
         },
     ]).then(function (res) {
-        displaySelectedProduct(res.id)
-    })
+        displaySelectedProduct(res.id);
+    });
 }
 
 function displaySelectedProduct(id) {
-    process.stdout.write('\033c')
+    process.stdout.write('\033c');
+    process.stdin.pause();
+
     connection.query("SELECT product_name, price, stock_quantity FROM products WHERE item_id=" + id, function (err, res) {
         if (err) throw err;
-        let adjective = descriptors[Math.floor(Math.random() * descriptors.length)]
+        let adjective = descriptors[Math.floor(Math.random() * descriptors.length)];
         //completely unnecessary constructor.. just practicing!
-        let display = new Display(adjective, res[0].stock_quantity, res[0].product_name, res[0].price, id)
+        let display = new Display(adjective, res[0].stock_quantity, res[0].product_name, res[0].price, id);
         display.log();
-        quantitySelect(display.name, display.price, display.stockCount, display.id);
+        quantitySelect(display);
     });
 }
 
 
-function quantitySelect(name, price, stockCount, id) {
+function quantitySelect(item) {
+    process.stdin.pause();
+
     let questions = [
         {
             message: "\nHow many can I put ya down for?\n",
@@ -138,7 +131,7 @@ function quantitySelect(name, price, stockCount, id) {
                 if (typeof (parseInt(quantity)) === 'number' && parseInt(quantity) > 0) {
                     return true;
                 } else {
-                    return 'Please enter a valid, whole-number quantity'
+                    return 'Please enter a valid, whole-number quantity';
                 }
             }
         },
@@ -153,27 +146,53 @@ function quantitySelect(name, price, stockCount, id) {
         if (res.choice === 'Cancel') {
             process.stdout.write('\033c');
             displayAllProducts();
-        } else if (stockCount === 0) {
-            console.log('Out of Stock! Sorry!')
+        } else if (item.stockCount === 0) {
+            console.log('Out of Stock! Sorry!');
             displayAllProducts();
-        } else if (stockCount < res.quantity) {
-            console.log('Insufficient stock :(')
-            quantitySelect(name, price, stockCount)
         } else {
-            let total = (price * res.quantity).toFixed(2);
-            shoppingCart.push({
-                'product_name': name,
-                'price': price,
-                'quantity': res.quantity,
-                'total': total,
-                'id': id
-            })
-            console.log('\n', `${res.quantity} ${name}(s) added to cart.`)
-            selectMenu()
+            let total = (item.price * res.quantity).toFixed(2);
+            updateCart(item, res.quantity, total);
         }
 
-    })
-};
+    });
+}
+
+
+function updateCart(item, quantity, total) {
+    quantity = parseInt(quantity);
+    total = parseFloat(total);
+    console.log("quantity type: ", typeof (quantity), "total type: ", typeof (total))
+    for (let i = 0; i < shoppingCart.length; i++) {
+        if (shoppingCart[i].id === item.id) {
+            let newQuantity = shoppingCart[i].quantity + quantity;
+            let newTotal = shoppingCart[i].total + total;
+            if (item.stockCount < newQuantity) {
+                console.log(`Insufficient stock. Only ${item.stockCount} left`);
+                return quantitySelect(item);
+
+            } else {
+                shoppingCart[i].quantity = newQuantity;
+                shoppingCart[i].total = newTotal;
+                return selectMenu();
+            }
+        }
+    }
+    if (item.stockCount < quantity) {
+        console.log(`Insufficient stock. Only ${item.stockCount} left`);
+        return quantitySelect(item);
+    } else {
+        shoppingCart.push({
+            'product_name': item.name,
+            'price': item.price,
+            'quantity': quantity,
+            'total': total,
+            'id': item.id
+        });
+    }
+    console.log('\n', `${quantity} ${item.name}(s) added to cart.`);
+    selectMenu();
+}
+
 
 function selectMenu() {
     inquirer.prompt([
@@ -190,43 +209,37 @@ function selectMenu() {
         } else {
             viewCart();
         }
-    })
-};
-
-
-
-
+    });
+}
 
 function viewCart() {
+    process.stdin.pause();
+
     let grandTotal = 0;
     let columns = [];
-    if (shoppingCart.length === 0) {
-        console.log("\n\n            Cart Empty.. duh.")
-    } else {
+    shoppingCart.forEach(function (e) {
 
-        shoppingCart.forEach(function (e) {
+        grandTotal += parseFloat(e.total);
 
-            grandTotal += parseFloat(e.total)
-
-            columns.unshift({
-                "Product": e.product_name,
-                "Price": e.price,
-                "Quantity": e.quantity,
-                "Total": e.total
-            });
+        columns.unshift({
+            "Product": e.product_name,
+            "Unit Price": e.price,
+            "Quantity": e.quantity,
+            "Total": e.total
         });
-    }
+    });
 
     console.log(columnify(columns, {
         minWidth: 15
     }));
-    grandTotal = grandTotal.toFixed(2)
-    console.log("\n", `                                 Grand Total: $${grandTotal}`)
+    grandTotal = grandTotal.toFixed(2);
+    console.log("\n", `                                 Grand Total: $${grandTotal}`);
     cartMenu(grandTotal);
 }
 
-
 function cartMenu(grandTotal) {
+    process.stdin.pause();
+
     inquirer.prompt([
         {
             message: '\nWhat now?',
@@ -240,9 +253,9 @@ function cartMenu(grandTotal) {
             displayAllProducts();
         } else {
             process.stdout.write('\033c');
-            funTimeAnimation(0, grandTotal)
+            funTimeAnimation(0, grandTotal);
         }
-    })
+    });
 }
 
 
@@ -252,7 +265,7 @@ function cartMenu(grandTotal) {
 
 
 function funTimeAnimation(x, grandTotal) {
-    console.log(x)
+    console.log(x);
     let dollars = ['$', '   $', '       $', '   $', '$', '   $', '       $'];
     if (x == dollars.length) {
         return checkOut(grandTotal);
@@ -261,15 +274,15 @@ function funTimeAnimation(x, grandTotal) {
     TextAnimation({
         text: dollars[x],
         animation: "top-bottom",
-        delay: 5
+        delay: 25
     }, function (err) {
         if (err) {
-            throw err
+            throw err;
         }
-        x++
-        funTimeAnimation(x, grandTotal)
+        x++;
+        funTimeAnimation(x, grandTotal);
 
-    })
+    });
 }
 
 
@@ -286,14 +299,14 @@ function checkOut(grandTotal) {
 
 function updateInventory(cart) {
     cart.forEach(function (item) {
-        console.log(item)
+        console.log(item);
         let query = connection.query('UPDATE products SET stock_quantity=stock_quantity-' + item.quantity + ' WHERE ?', [{
             item_id: item.id
         }], function (err, res) {
             if (err) throw err;
         });
-    })
-};
+    });
+}
 
 
 
