@@ -26,12 +26,12 @@ let shoppingCart = [];
 
 
 
-connection.connect(function (err) {
-    if (err) throw err;
-    process.stdout.write('\033c');
-    displayAllProducts();
-});
+//connection.connect(function (err) {
+//    if (err) throw err;
+//    process.stdout.write('\033c');
+//});
 
+displayAllProducts();
 
 //hotkeys are kinda working.. but lots of bugs.. hard to control for key mashing/hitting keys at the wrong time
 
@@ -161,7 +161,6 @@ function quantitySelect(item) {
 function updateCart(item, quantity, total) {
     quantity = parseInt(quantity);
     total = parseFloat(total);
-    console.log("quantity type: ", typeof (quantity), "total type: ", typeof (total))
     for (let i = 0; i < shoppingCart.length; i++) {
         if (shoppingCart[i].id === item.id) {
             let newQuantity = shoppingCart[i].quantity + quantity;
@@ -274,7 +273,7 @@ function funTimeAnimation(x, grandTotal) {
     TextAnimation({
         text: dollars[x],
         animation: "top-bottom",
-        delay: 25
+        delay: 5
     }, function (err) {
         if (err) {
             throw err;
